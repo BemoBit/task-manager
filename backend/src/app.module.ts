@@ -16,6 +16,7 @@ import jwtConfig from './config/jwt.config';
 import { DatabaseModule } from './modules/database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { TemplatesModule } from './modules/templates/templates.module';
 
 // Common imports
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -64,8 +65,8 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     // Authentication & Authorization Module
     AuthModule,
 
-    // Feature Modules (to be added)
-    // TemplatesModule,
+    // Feature Modules
+    TemplatesModule,
     // TasksModule,
     // AIProvidersModule,
   ],

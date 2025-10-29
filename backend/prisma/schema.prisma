@@ -46,6 +46,25 @@ enum AIProviderType {
   CUSTOM
 }
 
+enum TemplateAccessLevel {
+  PRIVATE
+  SHARED
+  PUBLIC
+}
+
+enum TemplatePermission {
+  VIEW
+  EDIT
+  ADMIN
+}
+
+enum CollaborationAction {
+  CURSOR_MOVE
+  SELECTION
+  EDIT
+  COMMENT
+}
+
 // Models
 
 model User {
@@ -105,25 +124,41 @@ model ApiKey {
 }
 
 model Template {
-  id          String       @id @default(uuid())
-  name        String
-  description String?      @db.Text
-  type        TemplateType
-  version     String       @default("1.0.0")
-  content     Json         // Template structure with sections, variables, rules
-  isActive    Boolean      @default(true)
-  isPublic    Boolean      @default(false)
-  createdBy   String
-  creator     User         @relation(fields: [createdBy], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id           String              @id @default(uuid())
+  name         String
+  description  String?             @db.Text
+  type         TemplateType
+  version      String              @default("1.0.0")
+  content      Json                // Template structure with sections, variables, rules
+  accessLevel  TemplateAccessLevel @default(PRIVATE)
+  category     String?
+  tags         String[]            // Array of tags for categorization
+  forkCount    Int                 @default(0)
+  usageCount   Int                 @default(0)
+  rating       Float?              @default(0)
+  ratingCount  Int                 @default(0)
+  isActive     Boolean             @default(true)
+  isDeleted    Boolean             @default(false)
+  deletedAt    DateTime?
+  forkedFrom   String?
+  forkedFromTemplate Template?     @relation("TemplateForks", fields: [forkedFrom], references: [id])
+  createdBy    String
+  creator      User                @relation(fields: [createdBy], references: [id])
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
   
-  phases      Phase[]
-  versions    TemplateVersion[]
+  phases       Phase[]
+  versions     TemplateVersion[]
+  shares       TemplateShare[]
+  analytics    TemplateAnalytics[]
+  forks        Template[]          @relation("TemplateForks")
   
   @@index([createdBy])
   @@index([type])
+  @@index([accessLevel])
   @@index([isActive])
+  @@index([isDeleted])
+  @@index([category])
   @@map("templates")
 }
 
@@ -134,11 +169,49 @@ model TemplateVersion {
   version     String
   content     Json
   changeLog   String?  @db.Text
+  branchName  String?  @default("main")
+  parentId    String?
+  isMerged    Boolean  @default(false)
+  mergedAt    DateTime?
+  createdBy   String
   createdAt   DateTime @default(now())
   
   @@index([templateId])
   @@index([version])
+  @@index([branchName])
   @@map("template_versions")
+}
+
+model TemplateShare {
+  id          String             @id @default(uuid())
+  templateId  String
+  template    Template           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId      String
+  permission  TemplatePermission
+  sharedBy    String
+  expiresAt   DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  
+  @@unique([templateId, userId])
+  @@index([templateId])
+  @@index([userId])
+  @@map("template_shares")
+}
+
+model TemplateAnalytics {
+  id          String   @id @default(uuid())
+  templateId  String
+  template    Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  event       String   // view, fork, use, rate, etc.
+  userId      String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  
+  @@index([templateId])
+  @@index([event])
+  @@index([createdAt])
+  @@map("template_analytics")
 }
 
 model Phase {
