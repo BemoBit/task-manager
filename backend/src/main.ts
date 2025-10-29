@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { PrismaService } from './modules/database/prisma.service';
 
 /**
  * Bootstrap the NestJS application
@@ -93,10 +92,6 @@ async function bootstrap() {
       showRequestDuration: true,
     },
   });
-
-  // Enable shutdown hooks for graceful shutdown
-  const prismaService = app.get(PrismaService);
-  await prismaService.enableShutdownHooks(app);
 
   // Start the server
   await app.listen(port);

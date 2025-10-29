@@ -3,7 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
-import * as redisStore from 'cache-manager-redis-store';
+import type { RedisClientOptions } from 'redis';
+import { redisStore } from 'cache-manager-redis-store';
 
 // Config imports
 import appConfig from './config/app.config';
@@ -14,6 +15,7 @@ import jwtConfig from './config/jwt.config';
 // Module imports
 import { DatabaseModule } from './modules/database/database.module';
 import { HealthModule } from './modules/health/health.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 // Common imports
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -43,8 +45,9 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     ]),
 
     // Cache Module - Redis caching
-    CacheModule.register({
+    CacheModule.register<RedisClientOptions>({
       isGlobal: true,
+      // @ts-ignore - Type mismatch in cache-manager-redis-store
       store: redisStore,
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
@@ -58,8 +61,10 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     // Health Check Module
     HealthModule,
 
+    // Authentication & Authorization Module
+    AuthModule,
+
     // Feature Modules (to be added)
-    // AuthModule,
     // TemplatesModule,
     // TasksModule,
     // AIProvidersModule,
