@@ -1,0 +1,281 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum TemplateType {
+  DECOMPOSITION
+  ENRICHMENT
+  CUSTOM
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SubtaskType {
+  DATA_MODEL
+  SERVICE
+  HTTP_API
+  TESTING
+  CUSTOM
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum AIProviderType {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  CUSTOM
+}
+
+// Models
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  tasks         Task[]
+  templates     Template[]
+  refreshTokens RefreshToken[]
+  apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+  
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  isRevoked   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model ApiKey {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([key])
+  @@map("api_keys")
+}
+
+model Template {
+  id          String       @id @default(uuid())
+  name        String
+  description String?      @db.Text
+  type        TemplateType
+  version     String       @default("1.0.0")
+  content     Json         // Template structure with sections, variables, rules
+  isActive    Boolean      @default(true)
+  isPublic    Boolean      @default(false)
+  createdBy   String
+  creator     User         @relation(fields: [createdBy], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  phases      Phase[]
+  versions    TemplateVersion[]
+  
+  @@index([createdBy])
+  @@index([type])
+  @@index([isActive])
+  @@map("templates")
+}
+
+model TemplateVersion {
+  id          String   @id @default(uuid())
+  templateId  String
+  template    Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version     String
+  content     Json
+  changeLog   String?  @db.Text
+  createdAt   DateTime @default(now())
+  
+  @@index([templateId])
+  @@index([version])
+  @@map("template_versions")
+}
+
+model Phase {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?  @db.Text
+  order        Int
+  templateId   String
+  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  aiProviderId String
+  aiProvider   AIProvider @relation(fields: [aiProviderId], references: [id])
+  config       Json     // Phase-specific configuration
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  tasks        Task[]
+  
+  @@unique([templateId, order])
+  @@index([templateId])
+  @@index([aiProviderId])
+  @@map("phases")
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String     @db.Text
+  status      TaskStatus @default(PENDING)
+  priority    Int        @default(0)
+  inputData   Json?
+  outputData  Json?
+  errorLog    String?    @db.Text
+  phaseId     String
+  phase       Phase      @relation(fields: [phaseId], references: [id])
+  assignedTo  String?
+  assignee    User?      @relation(fields: [assignedTo], references: [id])
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  subtasks    Subtask[]
+  
+  @@index([phaseId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([createdAt])
+  @@map("tasks")
+}
+
+model Subtask {
+  id          String     @id @default(uuid())
+  taskId      String
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  type        SubtaskType
+  title       String
+  description String?    @db.Text
+  content     Json       // Subtask specific data
+  prompt      String?    @db.Text // Generated prompt for this subtask
+  status      TaskStatus @default(PENDING)
+  order       Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([taskId])
+  @@index([status])
+  @@map("subtasks")
+}
+
+model AIProvider {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  type        AIProviderType
+  endpoint    String
+  apiKey      String         // Should be encrypted in production
+  model       String?
+  settings    Json           // Provider-specific settings
+  isActive    Boolean        @default(true)
+  maxTokens   Int?
+  temperature Float?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  phases      Phase[]
+  usageLogs   AIUsageLog[]
+  
+  @@index([type])
+  @@index([isActive])
+  @@map("ai_providers")
+}
+
+model AIUsageLog {
+  id           String     @id @default(uuid())
+  providerId   String
+  provider     AIProvider @relation(fields: [providerId], references: [id])
+  requestData  Json
+  responseData Json?
+  tokensUsed   Int?
+  cost         Float?
+  duration     Int?       // milliseconds
+  success      Boolean
+  errorMessage String?    @db.Text
+  createdAt    DateTime   @default(now())
+  
+  @@index([providerId])
+  @@index([createdAt])
+  @@index([success])
+  @@map("ai_usage_logs")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  resource    String
+  resourceId  String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@index([resource])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([key])
+  @@map("system_configs")
+}
