@@ -51,12 +51,7 @@ export class TemplateVersionService {
   /**
    * Create a new branch
    */
-  async createBranch(
-    templateId: string,
-    branchName: string,
-    fromVersion: string,
-    userId: string,
-  ) {
+  async createBranch(templateId: string, branchName: string, fromVersion: string, userId: string) {
     // Check if branch already exists
     const existing = await this.prisma.templateVersion.findFirst({
       where: {
@@ -86,7 +81,7 @@ export class TemplateVersionService {
       data: {
         templateId,
         version: `${branchName}-1.0.0`,
-        content: sourceVersion.content,
+        content: sourceVersion.content as Prisma.InputJsonValue,
         changeLog: `Created branch ${branchName} from version ${fromVersion}`,
         branchName,
         parentId: sourceVersion.id,
@@ -124,8 +119,8 @@ export class TemplateVersionService {
 
     // Perform three-way merge
     const mergeResult = this.performMerge(
-      sourceVersion.content as ITemplateContent,
-      targetVersion.content as ITemplateContent,
+      sourceVersion.content as unknown as ITemplateContent,
+      targetVersion.content as unknown as ITemplateContent,
     );
 
     if (!mergeResult.success) {
@@ -141,7 +136,7 @@ export class TemplateVersionService {
       throw new NotFoundException('Template not found');
     }
 
-    const [major, minor, patch] = template.version.split('.').map(Number);
+    const [major, minor] = template.version.split('.').map(Number);
     const newVersion = `${major}.${minor + 1}.0`;
 
     await this.prisma.templateVersion.create({
@@ -207,7 +202,7 @@ export class TemplateVersionService {
       data: {
         templateId,
         version: newVersion,
-        content: version.content,
+        content: version.content as Prisma.InputJsonValue,
         changeLog: reason || `Rolled back to version ${version.version}`,
         branchName: version.branchName || 'main',
         parentId: versionId,
@@ -219,7 +214,7 @@ export class TemplateVersionService {
     const updated = await this.prisma.template.update({
       where: { id: templateId },
       data: {
-        content: version.content,
+        content: version.content as Prisma.InputJsonValue,
         version: newVersion,
       },
     });
@@ -238,8 +233,8 @@ export class TemplateVersionService {
       this.getVersion(versionId2),
     ]);
 
-    const content1 = version1.content as ITemplateContent;
-    const content2 = version2.content as ITemplateContent;
+    const content1 = version1.content as unknown as ITemplateContent;
+    const content2 = version2.content as unknown as ITemplateContent;
 
     return this.calculateDiff(content1, content2);
   }
@@ -312,15 +307,16 @@ export class TemplateVersionService {
   /**
    * Perform three-way merge
    */
-  private performMerge(
-    source: ITemplateContent,
-    target: ITemplateContent,
-  ): IMergeResult {
+  private performMerge(source: ITemplateContent, target: ITemplateContent): IMergeResult {
     const conflicts: IMergeResult['conflicts'] = [];
     const merged: ITemplateContent = {
       sections: [...target.sections],
       globalVariables: [...target.globalVariables],
-      metadata: { ...target.metadata },
+      metadata: {
+        version: target.metadata?.version || '1.0.0',
+        schemaVersion: target.metadata?.schemaVersion || '1.0.0',
+        ...target.metadata,
+      },
     };
 
     // Merge sections
@@ -382,7 +378,17 @@ export class TemplateVersionService {
     });
 
     // Build tree structure
-    const tree: Record<string, any> = {};
+    const tree: Record<
+      string,
+      Array<{
+        id: string;
+        version: string;
+        changeLog: string | null;
+        createdAt: Date;
+        isMerged: boolean;
+        mergedAt: Date | null;
+      }>
+    > = {};
 
     for (const version of versions) {
       const branch = version.branchName || 'main';

@@ -185,7 +185,7 @@ export class TemplateController {
   ) {
     const template = await this.templateService.findOne(id, req.user.userId);
     return this.renderService.render(template.content as any, {
-      variables: dto.variables,
+      variables: dto.variables as Record<string, any>,
       ...dto.context,
     });
   }

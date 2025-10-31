@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { ShareTemplateDto } from '../dto/template-actions.dto';
 
@@ -17,11 +11,7 @@ export class TemplateSharingService {
   /**
    * Share template with a user
    */
-  async shareTemplate(
-    templateId: string,
-    userId: string,
-    dto: ShareTemplateDto,
-  ) {
+  async shareTemplate(templateId: string, userId: string, dto: ShareTemplateDto) {
     // Verify template exists and user has admin permission
     const template = await this.prisma.template.findUnique({
       where: { id: templateId },
@@ -158,20 +148,29 @@ export class TemplateSharingService {
     // Get all shares
     const shares = await this.prisma.templateShare.findMany({
       where: { templateId },
-      include: {
-        user: {
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Fetch user details separately
+    const sharesWithUsers = await Promise.all(
+      shares.map(async (share) => {
+        const user = await this.prisma.user.findUnique({
+          where: { id: share.userId },
           select: {
             id: true,
             email: true,
             firstName: true,
             lastName: true,
           },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        });
+        return {
+          ...share,
+          user,
+        };
+      }),
+    );
 
-    return shares;
+    return sharesWithUsers;
   }
 
   /**
@@ -299,11 +298,7 @@ export class TemplateSharingService {
   /**
    * Transfer ownership of template
    */
-  async transferOwnership(
-    templateId: string,
-    currentOwnerId: string,
-    newOwnerId: string,
-  ) {
+  async transferOwnership(templateId: string, currentOwnerId: string, newOwnerId: string) {
     const template = await this.prisma.template.findUnique({
       where: { id: templateId },
     });

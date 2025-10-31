@@ -45,14 +45,18 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
       },
     ]),
 
-    // Cache Module - Redis caching
-    CacheModule.register<RedisClientOptions>({
+    // Cache Module - Redis caching (temporarily disabled due to connection issues)
+    // CacheModule.register<RedisClientOptions>({
+    //   isGlobal: true,
+    //   // @ts-ignore - Type mismatch in cache-manager-redis-store
+    //   store: redisStore,
+    //   host: process.env.REDIS_HOST || 'localhost',
+    //   port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    //   password: process.env.REDIS_PASSWORD,
+    //   ttl: parseInt(process.env.REDIS_TTL || '3600', 10),
+    // }),
+    CacheModule.register({
       isGlobal: true,
-      // @ts-ignore - Type mismatch in cache-manager-redis-store
-      store: redisStore,
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      password: process.env.REDIS_PASSWORD,
       ttl: parseInt(process.env.REDIS_TTL || '3600', 10),
     }),
 

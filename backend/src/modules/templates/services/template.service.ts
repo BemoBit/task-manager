@@ -1,16 +1,10 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ForbiddenException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
 import { QueryTemplatesDto } from '../dto/query-templates.dto';
 import { ForkTemplateDto, RateTemplateDto } from '../dto/template-actions.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, Template } from '@prisma/client';
 
 @Injectable()
 export class TemplateService {
@@ -55,7 +49,7 @@ export class TemplateService {
       data: {
         templateId: template.id,
         version: '1.0.0',
-        content: template.content,
+        content: template.content as Prisma.InputJsonValue,
         changeLog: 'Initial version',
         branchName: 'main',
         createdBy: userId,
@@ -108,11 +102,11 @@ export class TemplateService {
     }
 
     if (type) {
-      where.type = type as any;
+      where.type = type as Prisma.EnumTemplateTypeFilter;
     }
 
     if (accessLevel) {
-      where.accessLevel = accessLevel as any;
+      where.accessLevel = accessLevel as Prisma.EnumTemplateAccessLevelFilter;
     }
 
     if (tags) {
@@ -220,7 +214,7 @@ export class TemplateService {
       });
 
       if (versionData) {
-        template.content = versionData.content as any;
+        template.content = versionData.content as Prisma.JsonValue;
       }
     }
 
@@ -329,7 +323,7 @@ export class TemplateService {
         name: dto.name,
         description: dto.description || `Fork of ${original.name}`,
         type: original.type,
-        content: original.content,
+        content: original.content as Prisma.InputJsonValue,
         accessLevel: 'PRIVATE',
         category: original.category,
         tags: original.tags,
@@ -354,7 +348,7 @@ export class TemplateService {
       data: {
         templateId: forked.id,
         version: '1.0.0',
-        content: original.content,
+        content: original.content as Prisma.InputJsonValue,
         changeLog: `Forked from ${original.name}`,
         branchName: 'main',
         createdBy: userId,
@@ -438,7 +432,7 @@ export class TemplateService {
   /**
    * Check if user has access to template
    */
-  private async checkAccess(template: any, userId: string) {
+  private async checkAccess(template: Template & { _count?: { shares: number } }, userId: string) {
     if (template.isDeleted) {
       throw new NotFoundException('Template has been deleted');
     }
@@ -478,7 +472,7 @@ export class TemplateService {
     templateId: string,
     event: string,
     userId?: string,
-    metadata?: any,
+    metadata?: Record<string, unknown>,
   ) {
     try {
       await this.prisma.templateAnalytics.create({

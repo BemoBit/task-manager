@@ -65,8 +65,8 @@ FROM node:20-alpine AS development
 # Set working directory
 WORKDIR /app
 
-# Install development tools
-RUN apk add --no-cache bash
+# Install development tools and OpenSSL for Prisma
+RUN apk add --no-cache bash openssl openssl-dev
 
 # Copy package files
 COPY package*.json ./
