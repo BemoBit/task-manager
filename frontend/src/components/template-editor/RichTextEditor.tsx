@@ -95,6 +95,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       Image,
     ],
     content,
+    immediatelyRender: false, // Fix SSR hydration mismatch
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
