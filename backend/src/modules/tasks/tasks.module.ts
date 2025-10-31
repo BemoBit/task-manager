@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { DatabaseModule } from '../database/database.module';
 import { PipelineController } from './controllers/pipeline.controller';
+import { SimpleTaskController } from './controllers/simple-task.controller';
 import { PipelineService } from './services/pipeline.service';
 import { StateMachineService } from './services/state-machine.service';
+import { SimpleTaskService } from './services/simple-task.service';
 import { PipelineProcessor } from './processors/pipeline.processor';
 import { DecompositionProcessor } from './processors/decomposition.processor';
 import { EnrichmentProcessor } from './processors/enrichment.processor';
@@ -45,11 +47,12 @@ import { PipelineGateway } from './gateways/pipeline.gateway';
       { name: 'enrichment' },
     ),
   ],
-  controllers: [PipelineController],
+  controllers: [PipelineController, SimpleTaskController],
   providers: [
     // Services
     PipelineService,
     StateMachineService,
+    SimpleTaskService,
     // Processors
     PipelineProcessor,
     DecompositionProcessor,
@@ -57,6 +60,6 @@ import { PipelineGateway } from './gateways/pipeline.gateway';
     // Gateway
     PipelineGateway,
   ],
-  exports: [PipelineService, StateMachineService, PipelineGateway],
+  exports: [PipelineService, StateMachineService, SimpleTaskService, PipelineGateway],
 })
 export class TasksModule {}

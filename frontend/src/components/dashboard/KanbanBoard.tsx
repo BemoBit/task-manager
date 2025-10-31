@@ -24,6 +24,10 @@ interface KanbanBoardProps {
   tasks: Task[];
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
   onTaskCreate?: () => void;
+  onTaskView?: (taskId: string) => void;
+  onTaskEdit?: (taskId: string) => void;
+  onTaskDuplicate?: (taskId: string) => void;
+  onTaskDelete?: (taskId: string) => void;
   className?: string;
 }
 
@@ -37,7 +41,11 @@ const columns = [
 export function KanbanBoard({ 
   tasks, 
   onTaskUpdate, 
-  onTaskCreate, 
+  onTaskCreate,
+  onTaskView,
+  onTaskEdit,
+  onTaskDuplicate,
+  onTaskDelete,
   className 
 }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -64,11 +72,24 @@ export function KanbanBoard({
     }
 
     const taskId = active.id as string;
-    const newStatus = over.id as Task['status'];
+    const overId = over.id as string;
 
-    // Update task status if dropped in a different column
-    if (columns.some((col) => col.id === newStatus)) {
-      onTaskUpdate(taskId, { status: newStatus });
+    console.log('Drag ended:', { taskId, overId });
+
+    // Check if dropped on a column (column IDs are: pending, in-progress, completed, failed)
+    const targetColumn = columns.find((col) => col.id === overId);
+    
+    if (targetColumn) {
+      // Dropped directly on column
+      console.log('Dropped on column:', targetColumn.id);
+      onTaskUpdate(taskId, { status: targetColumn.id as Task['status'] });
+    } else {
+      // Dropped on another task - find which column that task is in
+      const targetTask = tasks.find((t) => t.id === overId);
+      if (targetTask && targetTask.status !== activeTask?.status) {
+        console.log('Dropped on task in column:', targetTask.status);
+        onTaskUpdate(taskId, { status: targetTask.status });
+      }
     }
 
     setActiveTask(null);
@@ -114,23 +135,29 @@ export function KanbanBoard({
                   </h3>
                 </div>
 
-                <SortableContext
-                  id={column.id}
-                  items={columnTasks.map((t) => t.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <KanbanColumn columnId={column.id} tasks={columnTasks}>
-                    {columnTasks.map((task) => (
-                      <KanbanCard key={task.id} task={task} />
-                    ))}
-                  </KanbanColumn>
-                </SortableContext>
-
-                {columnTasks.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No tasks
-                  </div>
-                )}
+                <KanbanColumn columnId={column.id} tasks={columnTasks}>
+                  <SortableContext
+                    items={columnTasks.map((t) => t.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {columnTasks.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        No tasks
+                      </div>
+                    ) : (
+                      columnTasks.map((task) => (
+                        <KanbanCard 
+                          key={task.id} 
+                          task={task}
+                          onView={onTaskView}
+                          onEdit={onTaskEdit}
+                          onDuplicate={onTaskDuplicate}
+                          onDelete={onTaskDelete}
+                        />
+                      ))
+                    )}
+                  </SortableContext>
+                </KanbanColumn>
               </Card>
             );
           })}

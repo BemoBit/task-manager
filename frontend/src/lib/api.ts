@@ -17,17 +17,45 @@ import {
   PaginationConfig,
 } from '@/types/dashboard';
 
+// Template type (simplified for API use)
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category?: string;
+  content?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  usageCount?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 // Base API URL - should be from environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+// Get auth token from storage (if authentication is enabled)
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token');
+}
+
 // Generic fetch wrapper with error handling
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options?.headers as Record<string, string>,
+  };
+
+  // Add authorization header if token exists
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -35,7 +63,18 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     throw new Error(error.message || `API Error: ${response.status}`);
   }
 
-  const json = await response.json();
+  // Handle empty responses (like DELETE operations)
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return {} as T;
+  }
+
+  const text = await response.text();
+  if (!text) {
+    return {} as T;
+  }
+
+  const json = JSON.parse(text);
   // Extract data from the standardized response format
   return json.data || json;
 }
@@ -159,7 +198,8 @@ export const taskAPI = {
       params.append('pageSize', pagination.pageSize.toString());
     }
     
-    return fetchAPI<{ tasks: Task[]; total: number }>(`/tasks?${params}`);
+    const tasksArray = await fetchAPI<Task[]>(`/tasks?${params}`);
+    return { tasks: Array.isArray(tasksArray) ? tasksArray : [], total: Array.isArray(tasksArray) ? tasksArray.length : 0 };
   },
 
   // Get single task by ID
@@ -176,11 +216,14 @@ export const taskAPI = {
   },
 
   // Update task
-  updateTask: async (taskId: string, updates: Partial<Task>): Promise<Task> => {
-    return fetchAPI<Task>(`/tasks/${taskId}`, {
+  updateTask: async (taskId: string, updates: Record<string, unknown>): Promise<Task> => {
+    console.log('API updateTask called with:', { taskId, updates });
+    const response = await fetchAPI<Task>(`/tasks/${taskId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
+    console.log('API updateTask response:', response);
+    return response;
   },
 
   // Delete task
@@ -352,6 +395,42 @@ export const collaborationAPI = {
 
   removeWorkspaceMember: async (workspaceId: string, userId: string): Promise<Workspace> => {
     return fetchAPI<Workspace>(`/workspaces/${workspaceId}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Template APIs
+export const templateAPI = {
+  // Get all templates
+  getTemplates: async (): Promise<Template[]> => {
+    return fetchAPI<Template[]>('/templates');
+  },
+
+  // Get single template
+  getTemplateById: async (templateId: string): Promise<Template> => {
+    return fetchAPI<Template>(`/templates/${templateId}`);
+  },
+
+  // Create template
+  createTemplate: async (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>): Promise<Template> => {
+    return fetchAPI<Template>('/templates', {
+      method: 'POST',
+      body: JSON.stringify(template),
+    });
+  },
+
+  // Update template
+  updateTemplate: async (templateId: string, updates: Partial<Template>): Promise<Template> => {
+    return fetchAPI<Template>(`/templates/${templateId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  // Delete template
+  deleteTemplate: async (templateId: string): Promise<void> => {
+    return fetchAPI<void>(`/templates/${templateId}`, {
       method: 'DELETE',
     });
   },

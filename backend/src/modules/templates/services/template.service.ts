@@ -18,6 +18,24 @@ export class TemplateService {
   async create(userId: string, dto: CreateTemplateDto) {
     this.logger.log(`Creating template: ${dto.name} for user: ${userId}`);
 
+    // Ensure user exists, if not, use admin user
+    let validUserId = userId;
+    const userExists = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!userExists) {
+      this.logger.warn(`User ${userId} not found, using admin user`);
+      const adminUser = await this.prisma.user.findFirst({
+        where: { role: 'ADMIN' },
+      });
+      if (adminUser) {
+        validUserId = adminUser.id;
+      } else {
+        throw new Error('No valid user found. Please run database seeding.');
+      }
+    }
+
     const template = await this.prisma.template.create({
       data: {
         name: dto.name,
@@ -28,7 +46,7 @@ export class TemplateService {
         category: dto.category,
         tags: dto.tags || [],
         creator: {
-          connect: { id: userId },
+          connect: { id: validUserId },
         },
         version: '1.0.0',
       },
@@ -81,11 +99,22 @@ export class TemplateService {
 
     const skip = (page - 1) * limit;
 
+    // Get actual user ID if dev-user-id is passed
+    let validUserId = userId;
+    if (userId === 'dev-user-id') {
+      const adminUser = await this.prisma.user.findFirst({
+        where: { role: 'ADMIN' },
+      });
+      if (adminUser) {
+        validUserId = adminUser.id;
+      }
+    }
+
     // Build where clause
     const where: Prisma.TemplateWhereInput = {
       isDeleted: includeDeleted === 'true' ? undefined : false,
       OR: [
-        { createdBy: userId },
+        { createdBy: validUserId },
         { accessLevel: 'PUBLIC' },
         {
           shares: {

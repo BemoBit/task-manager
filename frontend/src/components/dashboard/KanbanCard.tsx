@@ -23,6 +23,10 @@ import { Button } from '@/components/ui/button';
 interface KanbanCardProps {
   task: Task;
   isDragging?: boolean;
+  onView?: (taskId: string) => void;
+  onEdit?: (taskId: string) => void;
+  onDuplicate?: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
 }
 
 const priorityColors = {
@@ -39,7 +43,7 @@ const priorityLabels = {
   urgent: 'Urgent',
 };
 
-export function KanbanCard({ task, isDragging }: KanbanCardProps) {
+export function KanbanCard({ task, isDragging, onView, onEdit, onDuplicate, onDelete }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -57,40 +61,68 @@ export function KanbanCard({ task, isDragging }: KanbanCardProps) {
 
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
 
-  return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={cn(
-        'cursor-grab active:cursor-grabbing',
-        isDragging && 'opacity-50 rotate-3 shadow-xl',
-        isOverdue && 'border-red-500'
-      )}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm font-medium line-clamp-2">
-            {task.title}
-          </CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>View Details</DropdownMenuItem>
-              <DropdownMenuItem>Edit</DropdownMenuItem>
-              <DropdownMenuItem>Duplicate</DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardHeader>
+  const handleMenuClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log('Menu item clicked, executing action');
+    action();
+  };
 
-      <CardContent className="space-y-3">
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Card
+        className={cn(
+          'cursor-grab active:cursor-grabbing',
+          isDragging && 'opacity-50 rotate-3 shadow-xl',
+          isOverdue && 'border-red-500'
+        )}
+        {...listeners}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-sm font-medium line-clamp-2 flex-1">
+              {task.title}
+            </CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={(e) => handleMenuClick(e, () => onView?.(task.id))}
+                >
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => handleMenuClick(e, () => onEdit?.(task.id))}
+                >
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => handleMenuClick(e, () => onDuplicate?.(task.id))}
+                >
+                  Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => handleMenuClick(e, () => onDelete?.(task.id))}
+                  className="text-red-600"
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
         {task.description && (
           <p className="text-xs text-muted-foreground line-clamp-2">
             {task.description}
@@ -106,13 +138,13 @@ export function KanbanCard({ task, isDragging }: KanbanCardProps) {
             {priorityLabels[task.priority]}
           </Badge>
           
-          {task.tags.slice(0, 2).map((tag) => (
+          {task.tags && task.tags.slice(0, 2).map((tag) => (
             <Badge key={tag} variant="outline" className="text-xs">
               {tag}
             </Badge>
           ))}
           
-          {task.tags.length > 2 && (
+          {task.tags && task.tags.length > 2 && (
             <Badge variant="outline" className="text-xs">
               +{task.tags.length - 2}
             </Badge>
@@ -169,5 +201,6 @@ export function KanbanCard({ task, isDragging }: KanbanCardProps) {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
