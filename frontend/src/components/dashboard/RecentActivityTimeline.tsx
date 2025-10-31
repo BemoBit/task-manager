@@ -18,22 +18,26 @@ interface RecentActivityTimelineProps {
   maxItems?: number;
 }
 
-const activityIcons = {
+const activityIcons: Record<string, typeof Clock> = {
   task_created: Clock,
   task_completed: CheckCircle2,
   task_failed: XCircle,
   template_updated: FileText,
   ai_request: Brain,
   report_generated: FileDown,
+  task: Clock,
+  audit: FileText,
 };
 
-const activityColors = {
+const activityColors: Record<string, string> = {
   task_created: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950',
   task_completed: 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950',
   task_failed: 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950',
   template_updated: 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-950',
   ai_request: 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950',
   report_generated: 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950',
+  task: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950',
+  audit: 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-950',
 };
 
 export function RecentActivityTimeline({ 
@@ -85,7 +89,7 @@ export function RecentActivityTimeline({
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium leading-none">
-                            {activity.title}
+                            {activity.title || activity.action || 'Activity'}
                           </p>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                             {activity.description}
@@ -94,7 +98,7 @@ export function RecentActivityTimeline({
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        <time dateTime={activity.timestamp.toISOString()}>
+                        <time dateTime={typeof activity.timestamp === 'string' ? activity.timestamp : activity.timestamp.toISOString()}>
                           {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
                         </time>
                       </div>

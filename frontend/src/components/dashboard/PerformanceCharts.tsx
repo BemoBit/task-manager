@@ -25,7 +25,7 @@ interface PerformanceChartsProps {
 }
 
 export function PerformanceCharts({ taskTrends, className }: PerformanceChartsProps) {
-  const chartData = taskTrends.map(trend => ({
+  const chartData = (taskTrends || []).map(trend => ({
     date: new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     completed: trend.completed,
     created: trend.created,

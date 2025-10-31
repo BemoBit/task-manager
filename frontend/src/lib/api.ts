@@ -35,14 +35,36 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     throw new Error(error.message || `API Error: ${response.status}`);
   }
 
-  return response.json();
+  const json = await response.json();
+  // Extract data from the standardized response format
+  return json.data || json;
+}
+
+// Backend response type for task statistics
+interface BackendTaskStatistics {
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  failedTasks: number;
+  pendingTasks: number;
+  cancelledTasks: number;
+  completionRate: number;
+  avgCompletionTime: number;
 }
 
 // Dashboard Statistics APIs
 export const dashboardAPI = {
   // Get task statistics
   getTaskStatistics: async (): Promise<TaskStatistics> => {
-    return fetchAPI<TaskStatistics>('/dashboard/statistics/tasks');
+    const data = await fetchAPI<BackendTaskStatistics>('/dashboard/statistics/tasks');
+    // Map backend field names to frontend expected names
+    return {
+      total: data.totalTasks || 0,
+      completed: data.completedTasks || 0,
+      inProgress: data.inProgressTasks || 0,
+      failed: data.failedTasks || 0,
+      pending: data.pendingTasks || 0,
+    };
   },
 
   // Get AI usage metrics
@@ -52,7 +74,26 @@ export const dashboardAPI = {
       params.append('startDate', dateRange.start.toISOString());
       params.append('endDate', dateRange.end.toISOString());
     }
-    return fetchAPI<AIUsageMetrics>(`/dashboard/statistics/ai-usage?${params}`);
+    const data = await fetchAPI<{
+      totalRequests: number;
+      successfulRequests: number;
+      failedRequests: number;
+      successRate: number;
+      totalTokens: number;
+      totalCost: number;
+      avgDuration: number;
+    }>(`/dashboard/statistics/ai-usage?${params}`);
+    
+    // Map backend response to frontend expected structure
+    return {
+      totalRequests: data.totalRequests || 0,
+      totalTokens: data.totalTokens || 0,
+      totalCost: data.totalCost || 0,
+      requestsByProvider: {}, // Backend doesn't provide this yet
+      tokensByProvider: {}, // Backend doesn't provide this yet
+      costsByProvider: {}, // Backend doesn't provide this yet
+      averageResponseTime: data.avgDuration || 0,
+    };
   },
 
   // Get recent activities

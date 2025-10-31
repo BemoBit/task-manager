@@ -75,7 +75,9 @@ export function StatisticsCards({ statistics, className }: StatisticsCardsProps)
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.value.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              {(card.value ?? 0).toLocaleString()}
+            </div>
             {card.trend && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 {card.trend.isPositive ? (

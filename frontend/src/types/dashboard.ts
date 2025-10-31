@@ -19,10 +19,12 @@ export interface AIUsageMetrics {
 
 export interface Activity {
   id: string;
-  type: 'task_created' | 'task_completed' | 'task_failed' | 'template_updated' | 'ai_request' | 'report_generated';
-  title: string;
+  type: 'task_created' | 'task_completed' | 'task_failed' | 'template_updated' | 'ai_request' | 'report_generated' | 'task' | 'audit';
+  title?: string;
+  action?: string;
   description: string;
-  timestamp: Date;
+  user?: string;
+  timestamp: string | Date;
   userId?: string;
   metadata?: Record<string, unknown>;
 }

@@ -23,10 +23,15 @@ export function AIUsageMetricsCard({ metrics, className }: AIUsageMetricsCardPro
     return num.toString();
   };
 
-  const topProvider = Object.entries(metrics.requestsByProvider).reduce(
-    (max, [provider, count]) => (count > max.count ? { provider, count } : max),
-    { provider: 'N/A', count: 0 }
-  );
+  const providerEntries = Object.entries(metrics.requestsByProvider);
+  const hasProviderData = providerEntries.length > 0;
+  
+  const topProvider = hasProviderData
+    ? providerEntries.reduce(
+        (max, [provider, count]) => (count > max.count ? { provider, count } : max),
+        { provider: 'N/A', count: 0 }
+      )
+    : { provider: 'N/A', count: 0 };
 
   return (
     <Card className={cn('', className)}>
@@ -88,37 +93,45 @@ export function AIUsageMetricsCard({ metrics, className }: AIUsageMetricsCardPro
         </div>
 
         {/* Provider Breakdown */}
-        <div className="pt-4 border-t">
-          <h4 className="text-sm font-medium mb-3">Provider Breakdown</h4>
-          <div className="space-y-2">
-            {Object.entries(metrics.requestsByProvider).map(([provider, count]) => {
-              const percentage = (count / metrics.totalRequests) * 100;
-              const cost = metrics.costsByProvider[provider] || 0;
-              
-              return (
-                <div key={provider} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{provider}</span>
-                    <span className="text-muted-foreground">
-                      {count} ({percentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-purple-500 transition-all"
-                        style={{ width: `${percentage}%` }}
-                      />
+        {hasProviderData ? (
+          <div className="pt-4 border-t">
+            <h4 className="text-sm font-medium mb-3">Provider Breakdown</h4>
+            <div className="space-y-2">
+              {Object.entries(metrics.requestsByProvider).map(([provider, count]) => {
+                const percentage = (count / metrics.totalRequests) * 100;
+                const cost = metrics.costsByProvider[provider] || 0;
+                
+                return (
+                  <div key={provider} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{provider}</span>
+                      <span className="text-muted-foreground">
+                        {count} ({percentage.toFixed(1)}%)
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground w-16 text-right">
-                      ${cost.toFixed(2)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500 transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-16 text-right">
+                        ${cost.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="pt-4 border-t">
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No provider breakdown data available
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
