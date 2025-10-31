@@ -7,6 +7,7 @@ Production-ready NestJS backend for an AI-powered task management system with te
 - **Modern NestJS Architecture**: Modular, scalable, and maintainable
 - **Database**: PostgreSQL with Prisma ORM
 - **Caching**: Redis for high-performance caching
+- **AI Integration**: Multi-provider support (OpenAI, Anthropic, Google Gemini)
 - **Authentication**: JWT-based with refresh tokens and role-based access control
 - **Security**: Helmet, CORS, rate limiting, input validation
 - **API Documentation**: Swagger/OpenAPI auto-generated docs
@@ -157,10 +158,10 @@ backend/
 │   ├── modules/
 │   │   ├── database/      # Prisma module
 │   │   ├── health/        # Health check endpoints
-│   │   ├── auth/          # Authentication (to be added)
-│   │   ├── templates/     # Template management (to be added)
+│   │   ├── auth/          # Authentication ✅
+│   │   ├── templates/     # Template management ✅
 │   │   ├── tasks/         # Task management (to be added)
-│   │   └── ai-providers/  # AI integration (to be added)
+│   │   └── ai-providers/  # AI integration ✅ COMPLETE
 │   ├── app.module.ts      # Root module
 │   └── main.ts            # Application bootstrap
 ├── test/                  # E2E tests
@@ -190,8 +191,14 @@ REDIS_PORT=6379
 JWT_SECRET=your-secret-key
 JWT_EXPIRATION=15m
 
-# AI Providers
-OPENAI_API_KEY=your-api-key
+# AI Providers (Encryption keys for secure storage)
+AI_ENCRYPTION_KEY=your-32-character-key
+AI_ENCRYPTION_IV=your-16-character-iv
+
+# AI Provider API Keys (Optional)
+OPENAI_API_KEY=sk-proj-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_AI_API_KEY=...
 ```
 
 ## 🐳 Docker Commands
@@ -220,12 +227,12 @@ docker-compose exec backend npm run prisma:migrate
 
 ### Core Modules
 
-1. **AuthModule**: JWT authentication, role-based access control
-2. **TemplatesModule**: Template CRUD operations and versioning
-3. **TasksModule**: Task management and decomposition
-4. **AIProvidersModule**: AI service integration
-5. **DatabaseModule**: Prisma ORM with PostgreSQL
-6. **CacheModule**: Redis caching layer
+1. **AuthModule** ✅: JWT authentication, role-based access control
+2. **TemplatesModule** ✅: Template CRUD operations and versioning
+3. **TasksModule**: Task management and decomposition (to be added)
+4. **AIProvidersModule** ✅: Multi-provider AI integration (OpenAI, Anthropic, Google)
+5. **DatabaseModule** ✅: Prisma ORM with PostgreSQL
+6. **CacheModule** ✅: Redis caching layer
 
 ### Database Schema
 
