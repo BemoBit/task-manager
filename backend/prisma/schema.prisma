@@ -68,91 +68,91 @@ enum CollaborationAction {
 // Models
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  firstName     String?
-  lastName      String?
-  role          UserRole  @default(USER)
-  isActive      Boolean   @default(true)
-  emailVerified Boolean   @default(false)
-  twoFactorEnabled Boolean @default(false)
-  twoFactorSecret String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lastLoginAt   DateTime?
-  
+  id               String    @id @default(uuid())
+  email            String    @unique
+  password         String
+  firstName        String?
+  lastName         String?
+  role             UserRole  @default(USER)
+  isActive         Boolean   @default(true)
+  emailVerified    Boolean   @default(false)
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastLoginAt      DateTime?
+
   tasks         Task[]
   templates     Template[]
   refreshTokens RefreshToken[]
   apiKeys       ApiKey[]
   auditLogs     AuditLog[]
-  
+
   @@index([email])
   @@index([role])
   @@map("users")
 }
 
 model RefreshToken {
-  id          String   @id @default(uuid())
-  token       String   @unique
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt   DateTime
-  isRevoked   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
 }
 
 model ApiKey {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  name        String
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isActive    Boolean  @default(true)
-  lastUsedAt  DateTime?
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  
+  id         String    @id @default(uuid())
+  key        String    @unique
+  name       String
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
   @@index([userId])
   @@index([key])
   @@map("api_keys")
 }
 
 model Template {
-  id           String              @id @default(uuid())
-  name         String
-  description  String?             @db.Text
-  type         TemplateType
-  version      String              @default("1.0.0")
-  content      Json                // Template structure with sections, variables, rules
-  accessLevel  TemplateAccessLevel @default(PRIVATE)
-  category     String?
-  tags         String[]            // Array of tags for categorization
-  forkCount    Int                 @default(0)
-  usageCount   Int                 @default(0)
-  rating       Float?              @default(0)
-  ratingCount  Int                 @default(0)
-  isActive     Boolean             @default(true)
-  isDeleted    Boolean             @default(false)
-  deletedAt    DateTime?
-  forkedFrom   String?
-  forkedFromTemplate Template?     @relation("TemplateForks", fields: [forkedFrom], references: [id])
-  createdBy    String
-  creator      User                @relation(fields: [createdBy], references: [id])
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  
-  phases       Phase[]
-  versions     TemplateVersion[]
-  shares       TemplateShare[]
-  analytics    TemplateAnalytics[]
-  forks        Template[]          @relation("TemplateForks")
-  
+  id                 String              @id @default(uuid())
+  name               String
+  description        String?             @db.Text
+  type               TemplateType
+  version            String              @default("1.0.0")
+  content            Json // Template structure with sections, variables, rules
+  accessLevel        TemplateAccessLevel @default(PRIVATE)
+  category           String?
+  tags               String[] // Array of tags for categorization
+  forkCount          Int                 @default(0)
+  usageCount         Int                 @default(0)
+  rating             Float?              @default(0)
+  ratingCount        Int                 @default(0)
+  isActive           Boolean             @default(true)
+  isDeleted          Boolean             @default(false)
+  deletedAt          DateTime?
+  forkedFrom         String?
+  forkedFromTemplate Template?           @relation("TemplateForks", fields: [forkedFrom], references: [id])
+  createdBy          String
+  creator            User                @relation(fields: [createdBy], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  phases    Phase[]
+  versions  TemplateVersion[]
+  shares    TemplateShare[]
+  analytics TemplateAnalytics[]
+  forks     Template[]          @relation("TemplateForks")
+
   @@index([createdBy])
   @@index([type])
   @@index([accessLevel])
@@ -163,19 +163,19 @@ model Template {
 }
 
 model TemplateVersion {
-  id          String   @id @default(uuid())
-  templateId  String
-  template    Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  version     String
-  content     Json
-  changeLog   String?  @db.Text
-  branchName  String?  @default("main")
-  parentId    String?
-  isMerged    Boolean  @default(false)
-  mergedAt    DateTime?
-  createdBy   String
-  createdAt   DateTime @default(now())
-  
+  id         String    @id @default(uuid())
+  templateId String
+  template   Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version    String
+  content    Json
+  changeLog  String?   @db.Text
+  branchName String?   @default("main")
+  parentId   String?
+  isMerged   Boolean   @default(false)
+  mergedAt   DateTime?
+  createdBy  String
+  createdAt  DateTime  @default(now())
+
   @@index([templateId])
   @@index([version])
   @@index([branchName])
@@ -183,16 +183,16 @@ model TemplateVersion {
 }
 
 model TemplateShare {
-  id          String             @id @default(uuid())
-  templateId  String
-  template    Template           @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  userId      String
-  permission  TemplatePermission
-  sharedBy    String
-  expiresAt   DateTime?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  
+  id         String             @id @default(uuid())
+  templateId String
+  template   Template           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  permission TemplatePermission
+  sharedBy   String
+  expiresAt  DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
   @@unique([templateId, userId])
   @@index([templateId])
   @@index([userId])
@@ -200,14 +200,14 @@ model TemplateShare {
 }
 
 model TemplateAnalytics {
-  id          String   @id @default(uuid())
-  templateId  String
-  template    Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  event       String   // view, fork, use, rate, etc.
-  userId      String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  
+  id         String   @id @default(uuid())
+  templateId String
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  event      String // view, fork, use, rate, etc.
+  userId     String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
   @@index([templateId])
   @@index([event])
   @@index([createdAt])
@@ -215,21 +215,21 @@ model TemplateAnalytics {
 }
 
 model Phase {
-  id           String   @id @default(uuid())
+  id           String     @id @default(uuid())
   name         String
-  description  String?  @db.Text
+  description  String?    @db.Text
   order        Int
   templateId   String
-  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template     Template   @relation(fields: [templateId], references: [id], onDelete: Cascade)
   aiProviderId String
   aiProvider   AIProvider @relation(fields: [aiProviderId], references: [id])
-  config       Json     // Phase-specific configuration
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  tasks        Task[]
-  
+  config       Json // Phase-specific configuration
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  tasks Task[]
+
   @@unique([templateId, order])
   @@index([templateId])
   @@index([aiProviderId])
@@ -253,9 +253,10 @@ model Task {
   completedAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  
-  subtasks    Subtask[]
-  
+
+  subtasks  Subtask[]
+  pipelines Pipeline[]
+
   @@index([phaseId])
   @@index([assignedTo])
   @@index([status])
@@ -264,19 +265,19 @@ model Task {
 }
 
 model Subtask {
-  id          String     @id @default(uuid())
+  id          String      @id @default(uuid())
   taskId      String
-  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task        Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
   type        SubtaskType
   title       String
-  description String?    @db.Text
-  content     Json       // Subtask specific data
-  prompt      String?    @db.Text // Generated prompt for this subtask
-  status      TaskStatus @default(PENDING)
+  description String?     @db.Text
+  content     Json // Subtask specific data
+  prompt      String?     @db.Text // Generated prompt for this subtask
+  status      TaskStatus  @default(PENDING)
   order       Int
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
   @@index([taskId])
   @@index([status])
   @@map("subtasks")
@@ -287,18 +288,18 @@ model AIProvider {
   name        String         @unique
   type        AIProviderType
   endpoint    String
-  apiKey      String         // Should be encrypted in production
+  apiKey      String // Should be encrypted in production
   model       String?
-  settings    Json           // Provider-specific settings
+  settings    Json // Provider-specific settings
   isActive    Boolean        @default(true)
   maxTokens   Int?
   temperature Float?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
-  
-  phases      Phase[]
-  usageLogs   AIUsageLog[]
-  
+
+  phases    Phase[]
+  usageLogs AIUsageLog[]
+
   @@index([type])
   @@index([isActive])
   @@map("ai_providers")
@@ -312,11 +313,11 @@ model AIUsageLog {
   responseData Json?
   tokensUsed   Int?
   cost         Float?
-  duration     Int?       // milliseconds
+  duration     Int? // milliseconds
   success      Boolean
   errorMessage String?    @db.Text
   createdAt    DateTime   @default(now())
-  
+
   @@index([providerId])
   @@index([createdAt])
   @@index([success])
@@ -324,17 +325,17 @@ model AIUsageLog {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  action      String
-  resource    String
-  resourceId  String?
-  details     Json?
-  ipAddress   String?
-  userAgent   String?  @db.Text
-  createdAt   DateTime @default(now())
-  
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?  @db.Text
+  createdAt  DateTime @default(now())
+
   @@index([userId])
   @@index([createdAt])
   @@index([resource])
@@ -348,7 +349,105 @@ model SystemConfig {
   isPublic  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([key])
   @@map("system_configs")
+}
+
+// Pipeline Models
+
+enum PipelineState {
+  IDLE
+  INITIALIZING
+  DECOMPOSING
+  ENRICHING
+  GENERATING_PROMPTS
+  COMPLETED
+  FAILED
+  PAUSED
+  ROLLED_BACK
+}
+
+enum PhaseExecutionState {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+  RETRYING
+}
+
+model Pipeline {
+  id           String        @id @default(uuid())
+  taskId       String
+  task         Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  state        PipelineState @default(IDLE)
+  config       Json // Pipeline configuration
+  context      Json // Pipeline context (projectRules, codingStandards, etc.)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  phases      PipelinePhaseExecution[]
+  checkpoints PipelineCheckpoint[]
+  events      PipelineEvent[]
+
+  @@index([taskId])
+  @@index([state])
+  @@index([createdAt])
+  @@map("pipelines")
+}
+
+model PipelinePhaseExecution {
+  id           String              @id @default(uuid())
+  pipelineId   String
+  pipeline     Pipeline            @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  phaseId      String
+  phaseName    String
+  order        Int
+  state        PhaseExecutionState @default(PENDING)
+  config       Json
+  result       Json?
+  errorMessage String?             @db.Text
+  retryCount   Int                 @default(0)
+  maxRetries   Int                 @default(3)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  duration     Int? // milliseconds
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([pipelineId])
+  @@index([state])
+  @@map("pipeline_phase_executions")
+}
+
+model PipelineCheckpoint {
+  id           String        @id @default(uuid())
+  pipelineId   String
+  pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  state        PipelineState
+  currentPhase Int
+  data         Json // Checkpoint data (subtasks, enriched data, etc.)
+  createdAt    DateTime      @default(now())
+
+  @@index([pipelineId])
+  @@index([createdAt])
+  @@map("pipeline_checkpoints")
+}
+
+model PipelineEvent {
+  id         String   @id @default(uuid())
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  eventType  String
+  data       Json
+  createdAt  DateTime @default(now())
+
+  @@index([pipelineId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("pipeline_events")
 }
