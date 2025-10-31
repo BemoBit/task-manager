@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { DashboardLayout } from '@/components/layout';
 import PipelineBuilder from '@/components/pipeline/PipelineBuilder';
 import ExecutionMonitor from '@/components/pipeline/ExecutionMonitor';
 import TaskView from '@/components/pipeline/TaskView';
@@ -47,7 +48,7 @@ export default function PipelinePage() {
 
   if (!pipeline) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+      <DashboardLayout>
         <div className="container mx-auto px-4 py-16">
           <motion.div
             className="max-w-2xl mx-auto text-center"
@@ -94,29 +95,30 @@ export default function PipelinePage() {
             </div>
           </motion.div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <motion.div
-        className="border-b bg-card"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">{pipeline.name}</h1>
-              {pipeline.description && (
-                <p className="text-sm text-muted-foreground">{pipeline.description}</p>
-              )}
+    <DashboardLayout>
+      <div className="min-h-full bg-background">
+        {/* Header */}
+        <motion.div
+          className="border-b bg-card"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">{pipeline.name}</h1>
+                {pipeline.description && (
+                  <p className="text-sm text-muted-foreground">{pipeline.description}</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
@@ -213,7 +215,8 @@ export default function PipelinePage() {
           </motion.div>
         </div>
       </div>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

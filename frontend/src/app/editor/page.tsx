@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout';
 import { useTemplateStore, setupAutoSave } from '@/store/templateStore';
 import { TemplateTreeView } from '@/components/template-editor/TemplateTreeView';
 import { PropertiesPanel } from '@/components/template-editor/PropertiesPanel';
@@ -112,16 +113,17 @@ export default function TemplateEditorPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Top Toolbar */}
-      <header className="border-b bg-card">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4 flex-1">
-            <h1 className="text-xl font-bold">Template Editor</h1>
-            <Separator orientation="vertical" className="h-6" />
-            <Input
-              value={template.name}
-              onChange={(e) =>
+    <DashboardLayout>
+      <div className="h-full flex flex-col bg-background">
+        {/* Top Toolbar */}
+        <header className="border-b bg-card">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-4 flex-1">
+              <h1 className="text-xl font-bold">Template Editor</h1>
+              <Separator orientation="vertical" className="h-6" />
+              <Input
+                value={template.name}
+                onChange={(e) =>
                 updateTemplate((draft) => {
                   draft.name = e.target.value;
                 })
@@ -260,6 +262,7 @@ export default function TemplateEditorPage() {
 
       {/* Variable Manager Modal */}
       <VariableManager open={showVariableManager} onOpenChange={setShowVariableManager} />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { AIProviderSettings } from '@/components/ai-providers';
+import { DashboardLayout } from '@/components/layout';
 import { useAIProviderStore } from '@/store/aiProviderStore';
 import { AIProvider, ProviderUsageStats } from '@/types/ai-provider';
 
@@ -169,5 +170,9 @@ export default function AIProvidersPage() {
     setUsageStats(mockUsageStats);
   }, [setProviders, setUsageStats]);
   
-  return <AIProviderSettings />;
+  return (
+    <DashboardLayout>
+      <AIProviderSettings />
+    </DashboardLayout>
+  );
 }
