@@ -1,0 +1,120 @@
+---
+- name: Database Backup
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    environment: "{{ lookup('env', 'ENVIRONMENT') | default('production', true) }}"
+    backup_bucket: "taskmanager-{{ environment }}-backups"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    
+  tasks:
+    - name: Get RDS instance identifier
+      command: |
+        aws rds describe-db-instances \
+          --filters "Name=tag:Environment,Values={{ environment }}" \
+          --query "DBInstances[0].DBInstanceIdentifier" \
+          --output text
+      register: db_identifier
+      changed_when: false
+
+    - name: Create RDS snapshot
+      command: |
+        aws rds create-db-snapshot \
+          --db-instance-identifier {{ db_identifier.stdout }} \
+          --db-snapshot-identifier taskmanager-{{ environment }}-{{ timestamp }}
+      register: snapshot_result
+
+    - name: Wait for snapshot to complete
+      command: |
+        aws rds wait db-snapshot-completed \
+          --db-snapshot-identifier taskmanager-{{ environment }}-{{ timestamp }}
+      when: snapshot_result.rc == 0
+
+    - name: Export PostgreSQL logical backup
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ environment }}"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "backup-{{ timestamp }}"
+          spec:
+            ttlSecondsAfterFinished: 3600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: backup
+                    image: postgres:15-alpine
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        pg_dump $DATABASE_URL | gzip > /backup/backup-{{ timestamp }}.sql.gz
+                        aws s3 cp /backup/backup-{{ timestamp }}.sql.gz s3://{{ backup_bucket }}/postgresql/
+                    envFrom:
+                      - secretRef:
+                          name: backend-secrets
+                    volumeMounts:
+                      - name: backup
+                        mountPath: /backup
+                volumes:
+                  - name: backup
+                    emptyDir: {}
+
+    - name: Backup Redis data
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ environment }}"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "redis-backup-{{ timestamp }}"
+          spec:
+            ttlSecondsAfterFinished: 3600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: redis-backup
+                    image: redis:7-alpine
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        redis-cli --rdb /backup/dump.rdb
+                        gzip /backup/dump.rdb
+                        aws s3 cp /backup/dump.rdb.gz s3://{{ backup_bucket }}/redis/backup-{{ timestamp }}.rdb.gz
+                    env:
+                      - name: REDISCLI_AUTH
+                        valueFrom:
+                          secretKeyRef:
+                            name: backend-secrets
+                            key: redis-password
+                    volumeMounts:
+                      - name: backup
+                        mountPath: /backup
+                volumes:
+                  - name: backup
+                    emptyDir: {}
+
+    - name: Rotate old backups
+      command: |
+        aws s3 ls s3://{{ backup_bucket }}/ --recursive | \
+        awk '{print $4}' | \
+        sort -r | \
+        tail -n +31 | \
+        xargs -I {} aws s3 rm s3://{{ backup_bucket }}/{}
+      ignore_errors: yes
+
+    - name: Print backup information
+      debug:
+        msg:
+          - "Backup completed successfully!"
+          - "RDS Snapshot: taskmanager-{{ environment }}-{{ timestamp }}"
+          - "Backup Location: s3://{{ backup_bucket }}/"
+          - "Timestamp: {{ timestamp }}"

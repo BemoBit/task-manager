@@ -18,11 +18,10 @@ import { Separator } from '@/components/ui/separator';
 import { Settings2, Tag } from 'lucide-react';
 
 export const PropertiesPanel: React.FC = () => {
-  const { selectedSectionId, template, updateSection } = useTemplateStore((state) => ({
-    selectedSectionId: state.editorState.selectedSectionId,
-    template: state.history.present,
-    updateSection: state.updateSection,
-  }));
+  // Split selectors to avoid creating new objects
+  const selectedSectionId = useTemplateStore((state) => state.editorState.selectedSectionId);
+  const template = useTemplateStore((state) => state.history.present);
+  const updateSection = useTemplateStore((state) => state.updateSection);
 
   const selectedSection = template.sections.find((s) => s.id === selectedSectionId);
 

@@ -38,14 +38,11 @@ interface VariableManagerProps {
 }
 
 export const VariableManager: React.FC<VariableManagerProps> = ({ open, onOpenChange }) => {
-  const { variables, addVariable, updateVariable, deleteVariable } = useTemplateStore(
-    (state) => ({
-      variables: state.history.present.globalVariables,
-      addVariable: state.addVariable,
-      updateVariable: state.updateVariable,
-      deleteVariable: state.deleteVariable,
-    })
-  );
+  // Split selectors to avoid creating new objects on every render
+  const variables = useTemplateStore((state) => state.history.present.globalVariables);
+  const addVariable = useTemplateStore((state) => state.addVariable);
+  const updateVariable = useTemplateStore((state) => state.updateVariable);
+  const deleteVariable = useTemplateStore((state) => state.deleteVariable);
 
   const [editingVariable, setEditingVariable] = useState<Variable | null>(null);
   const [showForm, setShowForm] = useState(false);

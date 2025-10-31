@@ -1,0 +1,70 @@
+---
+- name: Restore Database from Backup
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    environment: "{{ lookup('env', 'ENVIRONMENT') | default('staging', true) }}"
+    backup_file: "{{ lookup('env', 'BACKUP_FILE') }}"
+    backup_bucket: "taskmanager-{{ environment }}-backups"
+    
+  tasks:
+    - name: Validate backup file parameter
+      fail:
+        msg: "BACKUP_FILE environment variable must be set"
+      when: backup_file == ""
+
+    - name: Download backup from S3
+      command: |
+        aws s3 cp s3://{{ backup_bucket }}/postgresql/{{ backup_file }} /tmp/{{ backup_file }}
+      register: download_result
+
+    - name: Restore PostgreSQL database
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ environment }}"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "restore-{{ ansible_date_time.epoch }}"
+          spec:
+            ttlSecondsAfterFinished: 3600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: restore
+                    image: postgres:15-alpine
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        aws s3 cp s3://{{ backup_bucket }}/postgresql/{{ backup_file }} - | \
+                        gunzip | \
+                        psql $DATABASE_URL
+                    envFrom:
+                      - secretRef:
+                          name: backend-secrets
+
+    - name: Wait for restore job to complete
+      kubernetes.core.k8s_info:
+        kind: Job
+        name: "restore-{{ ansible_date_time.epoch }}"
+        namespace: "{{ environment }}"
+      register: restore_job
+      until: restore_job.resources[0].status.succeeded == 1
+      retries: 60
+      delay: 10
+
+    - name: Restart backend pods
+      command: |
+        kubectl rollout restart deployment/backend-deployment -n {{ environment }}
+
+    - name: Print restore information
+      debug:
+        msg:
+          - "Database restore completed successfully!"
+          - "Backup File: {{ backup_file }}"
+          - "Environment: {{ environment }}"

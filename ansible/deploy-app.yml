@@ -1,0 +1,89 @@
+---
+- name: Deploy Application to Kubernetes
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    environment: "{{ lookup('env', 'ENVIRONMENT') | default('staging', true) }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    namespace: "{{ environment }}"
+    
+  tasks:
+    - name: Ensure namespace exists
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ namespace }}"
+
+    - name: Apply ConfigMaps
+      kubernetes.core.k8s:
+        state: present
+        src: "../k8s/overlays/{{ environment }}/kustomization.yaml"
+        namespace: "{{ namespace }}"
+
+    - name: Deploy backend application
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ namespace }}"
+        definition: "{{ lookup('template', 'backend-deployment.yml.j2') }}"
+
+    - name: Deploy frontend application
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ namespace }}"
+        definition: "{{ lookup('template', 'frontend-deployment.yml.j2') }}"
+
+    - name: Wait for backend deployment to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: backend-deployment
+        namespace: "{{ namespace }}"
+      register: backend_deployment
+      until: backend_deployment.resources[0].status.readyReplicas == backend_deployment.resources[0].spec.replicas
+      retries: 30
+      delay: 10
+
+    - name: Wait for frontend deployment to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: frontend-deployment
+        namespace: "{{ namespace }}"
+      register: frontend_deployment
+      until: frontend_deployment.resources[0].status.readyReplicas == frontend_deployment.resources[0].spec.replicas
+      retries: 30
+      delay: 10
+
+    - name: Run database migrations
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ namespace }}"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "db-migration-{{ ansible_date_time.epoch }}"
+          spec:
+            ttlSecondsAfterFinished: 300
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: migration
+                    image: "ghcr.io/bemobit/task-manager/backend:{{ image_tag }}"
+                    command: ["npx", "prisma", "migrate", "deploy"]
+                    envFrom:
+                      - secretRef:
+                          name: backend-secrets
+
+    - name: Print deployment information
+      debug:
+        msg: 
+          - "Deployment completed successfully!"
+          - "Environment: {{ environment }}"
+          - "Image Tag: {{ image_tag }}"
+          - "Backend Replicas: {{ backend_deployment.resources[0].status.readyReplicas }}"
+          - "Frontend Replicas: {{ frontend_deployment.resources[0].status.readyReplicas }}"

@@ -44,10 +44,9 @@ const SortableSection: React.FC<SortableSectionProps> = ({ section }) => {
     id: section.id,
   });
 
-  const { setSelectedSection, selectedSectionId } = useTemplateStore((state) => ({
-    setSelectedSection: state.setSelectedSection,
-    selectedSectionId: state.editorState.selectedSectionId,
-  }));
+  // Split selectors to avoid creating new objects
+  const setSelectedSection = useTemplateStore((state) => state.setSelectedSection);
+  const selectedSectionId = useTemplateStore((state) => state.editorState.selectedSectionId);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -103,11 +102,10 @@ const DEFAULT_SECTIONS: Array<{ type: DefaultSectionType; title: string; content
 ];
 
 export const SectionBuilder: React.FC = () => {
-  const { sections, addSection, reorderSections } = useTemplateStore((state) => ({
-    sections: state.history.present.sections,
-    addSection: state.addSection,
-    reorderSections: state.reorderSections,
-  }));
+  // Split selectors to avoid creating new objects
+  const sections = useTemplateStore((state) => state.history.present.sections);
+  const addSection = useTemplateStore((state) => state.addSection);
+  const reorderSections = useTemplateStore((state) => state.reorderSections);
 
   const sensors = useSensors(
     useSensor(PointerSensor),

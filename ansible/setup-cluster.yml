@@ -1,0 +1,140 @@
+---
+- name: Setup Kubernetes Cluster
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    cluster_name: "{{ lookup('env', 'CLUSTER_NAME') }}"
+    aws_region: "{{ lookup('env', 'AWS_REGION') | default('us-east-1', true) }}"
+    
+  tasks:
+    - name: Install required Python packages
+      pip:
+        name:
+          - boto3
+          - botocore
+          - kubernetes
+        state: present
+
+    - name: Update kubeconfig for EKS cluster
+      command: "aws eks update-kubeconfig --region {{ aws_region }} --name {{ cluster_name }}"
+      changed_when: false
+
+    - name: Create namespaces
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ item }}"
+            labels:
+              name: "{{ item }}"
+      loop:
+        - production
+        - staging
+        - monitoring
+        - ingress-nginx
+
+    - name: Install NGINX Ingress Controller
+      kubernetes.core.helm:
+        name: ingress-nginx
+        chart_ref: ingress-nginx/ingress-nginx
+        release_namespace: ingress-nginx
+        create_namespace: true
+        values:
+          controller:
+            service:
+              type: LoadBalancer
+              annotations:
+                service.beta.kubernetes.io/aws-load-balancer-type: nlb
+                service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+            metrics:
+              enabled: true
+            podAnnotations:
+              prometheus.io/scrape: "true"
+              prometheus.io/port: "10254"
+
+    - name: Install cert-manager
+      kubernetes.core.helm:
+        name: cert-manager
+        chart_ref: jetstack/cert-manager
+        release_namespace: cert-manager
+        create_namespace: true
+        values:
+          installCRDs: true
+          prometheus:
+            enabled: true
+
+    - name: Create ClusterIssuer for Let's Encrypt
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: letsencrypt-prod
+          spec:
+            acme:
+              server: https://acme-v02.api.letsencrypt.org/directory
+              email: admin@taskmanager.io
+              privateKeySecretRef:
+                name: letsencrypt-prod
+              solvers:
+                - http01:
+                    ingress:
+                      class: nginx
+
+    - name: Install Metrics Server
+      kubernetes.core.helm:
+        name: metrics-server
+        chart_ref: metrics-server/metrics-server
+        release_namespace: kube-system
+        values:
+          args:
+            - --kubelet-preferred-address-types=InternalIP
+
+    - name: Install External Secrets Operator
+      kubernetes.core.helm:
+        name: external-secrets
+        chart_ref: external-secrets/external-secrets
+        release_namespace: external-secrets
+        create_namespace: true
+
+    - name: Configure External Secrets for AWS Secrets Manager
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: external-secrets.io/v1beta1
+          kind: SecretStore
+          metadata:
+            name: aws-secrets-manager
+            namespace: "{{ item }}"
+          spec:
+            provider:
+              aws:
+                service: SecretsManager
+                region: "{{ aws_region }}"
+                auth:
+                  jwt:
+                    serviceAccountRef:
+                      name: external-secrets-sa
+      loop:
+        - production
+        - staging
+
+    - name: Install AWS Load Balancer Controller
+      kubernetes.core.helm:
+        name: aws-load-balancer-controller
+        chart_ref: eks/aws-load-balancer-controller
+        release_namespace: kube-system
+        values:
+          clusterName: "{{ cluster_name }}"
+          serviceAccount:
+            create: true
+            name: aws-load-balancer-controller
+
+    - name: Print completion message
+      debug:
+        msg: "Kubernetes cluster setup completed successfully!"

@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: monitoring
+data:
+  jaeger.yaml: |
+    ---
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.51
+          env:
+            - name: COLLECTOR_ZIPKIN_HOST_PORT
+              value: ":9411"
+            - name: SPAN_STORAGE_TYPE
+              value: "elasticsearch"
+            - name: ES_SERVER_URLS
+              value: "http://elasticsearch:9200"
+          ports:
+            - containerPort: 5775
+              protocol: UDP
+              name: zk-compact
+            - containerPort: 6831
+              protocol: UDP
+              name: jg-compact
+            - containerPort: 6832
+              protocol: UDP
+              name: jg-binary
+            - containerPort: 5778
+              protocol: TCP
+              name: config-rest
+            - containerPort: 16686
+              protocol: TCP
+              name: query
+            - containerPort: 9411
+              protocol: TCP
+              name: zipkin
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  ports:
+    - port: 16686
+      targetPort: 16686
+      name: query
+  selector:
+    app: jaeger
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-collector
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  ports:
+    - port: 14268
+      targetPort: 14268
+      name: http
+    - port: 9411
+      targetPort: 9411
+      name: zipkin
+  selector:
+    app: jaeger
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-agent
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5775
+      protocol: UDP
+      name: zk-compact
+    - port: 6831
+      protocol: UDP
+      name: jg-compact
+    - port: 6832
+      protocol: UDP
+      name: jg-binary
+    - port: 5778
+      protocol: TCP
+      name: config-rest
+  selector:
+    app: jaeger

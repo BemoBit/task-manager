@@ -1,0 +1,30 @@
+environment         = "production"
+aws_region         = "us-east-1"
+project_name       = "taskmanager"
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+# EKS Configuration
+cluster_version = "1.28"
+
+# RDS Configuration
+db_instance_class      = "db.r6g.xlarge"
+db_allocated_storage   = 200
+backup_retention_period = 30
+
+# ElastiCache Configuration
+redis_node_type       = "cache.r6g.large"
+redis_num_cache_nodes = 3
+
+# Domain Configuration
+domain_name = "taskmanager.io"
+
+# Feature Flags
+enable_monitoring    = true
+enable_service_mesh  = false
+
+tags = {
+  Terraform   = "true"
+  Environment = "production"
+  Project     = "TaskManager"
+}

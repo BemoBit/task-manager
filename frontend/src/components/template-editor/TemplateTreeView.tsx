@@ -19,13 +19,11 @@ interface TreeNodeProps {
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({ section, level = 0 }) => {
-  const { selectedSectionId, setSelectedSection, toggleSectionCollapse, deleteSection } =
-    useTemplateStore((state) => ({
-      selectedSectionId: state.editorState.selectedSectionId,
-      setSelectedSection: state.setSelectedSection,
-      toggleSectionCollapse: state.toggleSectionCollapse,
-      deleteSection: state.deleteSection,
-    }));
+  // Split selectors to avoid creating new objects
+  const selectedSectionId = useTemplateStore((state) => state.editorState.selectedSectionId);
+  const setSelectedSection = useTemplateStore((state) => state.setSelectedSection);
+  const toggleSectionCollapse = useTemplateStore((state) => state.toggleSectionCollapse);
+  const deleteSection = useTemplateStore((state) => state.deleteSection);
 
   const isSelected = selectedSectionId === section.id;
   const hasSubsections = section.subsections && section.subsections.length > 0;
@@ -109,10 +107,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ section, level = 0 }) => {
 };
 
 export const TemplateTreeView: React.FC = () => {
-  const { template, addSection } = useTemplateStore((state) => ({
-    template: state.history.present,
-    addSection: state.addSection,
-  }));
+  // Split selectors to avoid creating new objects
+  const template = useTemplateStore((state) => state.history.present);
+  const addSection = useTemplateStore((state) => state.addSection);
 
   const handleAddSection = () => {
     addSection({

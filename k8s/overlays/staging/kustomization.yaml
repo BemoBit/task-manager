@@ -1,0 +1,66 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: staging
+
+resources:
+  - ../../base/namespace.yaml
+  - ../../base/backend-deployment.yaml
+  - ../../base/backend-service.yaml
+  - ../../base/backend-configmap.yaml
+  - ../../base/backend-secrets.yaml
+  - ../../base/backend-hpa.yaml
+  - ../../base/frontend-deployment.yaml
+  - ../../base/frontend-service.yaml
+  - ../../base/frontend-configmap.yaml
+  - ../../base/frontend-hpa.yaml
+  - ../../base/redis.yaml
+  - ../../base/ingress.yaml
+  - ../../base/pdb.yaml
+  - ../../base/network-policy.yaml
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: backend-deployment
+      spec:
+        replicas: 2
+    target:
+      kind: Deployment
+      name: backend-deployment
+  
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend-deployment
+      spec:
+        replicas: 2
+    target:
+      kind: Deployment
+      name: frontend-deployment
+
+configMapGenerator:
+  - name: backend-config
+    behavior: merge
+    literals:
+      - cors-origin=https://staging.taskmanager.io
+      - log-level=debug
+
+  - name: frontend-config
+    behavior: merge
+    literals:
+      - api-url=https://staging-api.taskmanager.io
+
+images:
+  - name: ghcr.io/bemobit/task-manager/backend
+    newTag: develop
+  - name: ghcr.io/bemobit/task-manager/frontend
+    newTag: develop

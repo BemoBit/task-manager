@@ -50,7 +50,9 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-      toast.error('Failed to load dashboard data');
+      toast.error('Failed to load dashboard data', {
+        description: error instanceof Error ? error.message : undefined
+      });
     } finally {
       setLoading(false);
     }

@@ -35,37 +35,25 @@ export default function TemplateEditorPage() {
   const [showVariableManager, setShowVariableManager] = useState(false);
   const [sidebarCollapsed] = useState(false);
 
-  const {
-    template,
-    selectedSection,
-    isPreviewMode,
-    isDirty,
-    lastSaved,
-    canUndo,
-    canRedo,
-    updateTemplate,
-    updateSection,
-    togglePreviewMode,
-    undo,
-    redo,
-    triggerAutoSave,
-  } = useTemplateStore((state) => ({
-    template: state.history.present,
-    selectedSection: state.history.present.sections.find(
-      (s) => s.id === state.editorState.selectedSectionId
-    ),
-    isPreviewMode: state.editorState.isPreviewMode,
-    isDirty: state.editorState.isDirty,
-    lastSaved: state.editorState.lastSaved,
-    canUndo: state.canUndo(),
-    canRedo: state.canRedo(),
-    updateTemplate: state.updateTemplate,
-    updateSection: state.updateSection,
-    togglePreviewMode: state.togglePreviewMode,
-    undo: state.undo,
-    redo: state.redo,
-    triggerAutoSave: state.triggerAutoSave,
-  }));
+  // Split selectors to avoid creating new objects on every render
+  const template = useTemplateStore((state) => state.history.present);
+  const selectedSectionId = useTemplateStore((state) => state.editorState.selectedSectionId);
+  const isPreviewMode = useTemplateStore((state) => state.editorState.isPreviewMode);
+  const isDirty = useTemplateStore((state) => state.editorState.isDirty);
+  const lastSaved = useTemplateStore((state) => state.editorState.lastSaved);
+  const canUndo = useTemplateStore((state) => state.canUndo());
+  const canRedo = useTemplateStore((state) => state.canRedo());
+  
+  // Actions
+  const updateTemplate = useTemplateStore((state) => state.updateTemplate);
+  const updateSection = useTemplateStore((state) => state.updateSection);
+  const togglePreviewMode = useTemplateStore((state) => state.togglePreviewMode);
+  const undo = useTemplateStore((state) => state.undo);
+  const redo = useTemplateStore((state) => state.redo);
+  const triggerAutoSave = useTemplateStore((state) => state.triggerAutoSave);
+
+  // Derive selected section from template and selectedSectionId
+  const selectedSection = template.sections.find((s) => s.id === selectedSectionId);
 
   // Setup auto-save
   useEffect(() => {

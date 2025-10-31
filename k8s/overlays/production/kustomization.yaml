@@ -1,0 +1,90 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: production
+
+resources:
+  - ../../base/namespace.yaml
+  - ../../base/backend-deployment.yaml
+  - ../../base/backend-service.yaml
+  - ../../base/backend-configmap.yaml
+  - ../../base/backend-secrets.yaml
+  - ../../base/backend-hpa.yaml
+  - ../../base/frontend-deployment.yaml
+  - ../../base/frontend-service.yaml
+  - ../../base/frontend-configmap.yaml
+  - ../../base/frontend-hpa.yaml
+  - ../../base/redis.yaml
+  - ../../base/ingress.yaml
+  - ../../base/pdb.yaml
+  - ../../base/network-policy.yaml
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: backend-deployment
+      spec:
+        replicas: 5
+    target:
+      kind: Deployment
+      name: backend-deployment
+  
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend-deployment
+      spec:
+        replicas: 5
+    target:
+      kind: Deployment
+      name: frontend-deployment
+
+  - patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: backend-hpa
+      spec:
+        minReplicas: 5
+        maxReplicas: 20
+    target:
+      kind: HorizontalPodAutoscaler
+      name: backend-hpa
+
+  - patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: frontend-hpa
+      spec:
+        minReplicas: 5
+        maxReplicas: 20
+    target:
+      kind: HorizontalPodAutoscaler
+      name: frontend-hpa
+
+configMapGenerator:
+  - name: backend-config
+    behavior: merge
+    literals:
+      - cors-origin=https://taskmanager.io
+      - log-level=info
+
+  - name: frontend-config
+    behavior: merge
+    literals:
+      - api-url=https://api.taskmanager.io
+
+images:
+  - name: ghcr.io/bemobit/task-manager/backend
+    newTag: latest
+  - name: ghcr.io/bemobit/task-manager/frontend
+    newTag: latest
