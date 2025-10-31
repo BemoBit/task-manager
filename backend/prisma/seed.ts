@@ -54,7 +54,7 @@ async function main() {
       type: 'DECOMPOSITION',
       version: '1.0.0',
       isActive: true,
-      isPublic: true,
+      accessLevel: 'PUBLIC',
       createdBy: adminUser.id,
       content: {
         sections: [

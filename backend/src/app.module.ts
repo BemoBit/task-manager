@@ -17,6 +17,9 @@ import { DatabaseModule } from './modules/database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TemplatesModule } from './modules/templates/templates.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { AIProvidersModule } from './modules/ai-providers/ai-providers.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 // Common imports
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -71,8 +74,9 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 
     // Feature Modules
     TemplatesModule,
-    // TasksModule,
-    // AIProvidersModule,
+    TasksModule,
+    AIProvidersModule,
+    DashboardModule,
   ],
   providers: [
     // Global Exception Filter
